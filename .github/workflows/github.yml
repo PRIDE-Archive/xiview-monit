@@ -45,3 +45,54 @@ jobs:
         tags: |
           ghcr.io/${{ vars.MONIT_GITHUB_REPOSITORY }}:latest
           ghcr.io/${{ vars.MONIT_GITHUB_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+  deploy:
+    needs: docker_build
+    environment: prod
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_PULL_SECRET: pride-gitlab-docker-secret
+      PORT: ${{ vars.PORT }}
+      node_port: ${{ vars.NODE_PORT }}
+      app_name: ${{ vars.APP_NAME }}
+      K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
+      IMAGE: ghcr.io/${{ vars.MONIT_GITHUB_REPOSITORY }}:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y gettext tzdata coreutils
+
+      - name: Create kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo ${{ secrets.KUBE_CONFIG }} > kubeconfig
+          base64 -d kubeconfig > ~/.kube/config
+          kubectl config get-contexts
+
+      - name: Create a Namespace if not exists
+        run: kubectl create namespace ${{ vars.K8S_NAMESPACE }} || true
+
+      - name: Delete the docker pull secrete if exist
+        run: kubectl -n ${{ vars.K8S_NAMESPACE }} delete secret ${{ env.DOCKER_PULL_SECRET }} || true
+
+      - name: Create a Docker registry secret with new image
+        run: |
+          kubectl -n ${{ vars.K8S_NAMESPACE }} create secret docker-registry ${{ env.DOCKER_PULL_SECRET }} \
+          --docker-server=ghcr.io \
+          --docker-username=${{ env.USERNAME }} \
+          --docker-password=${{ secrets.GHCR_TOKEN }}
+
+      - name: Substitute kubernetes variables by environment variables or variables
+        run: envsubst <.kubernetes.yml > kubernetes.yml
+
+      - name: Print kubernetes.yml
+        run: cat kubernetes.yml
+#
+#      - name: Deploy to Kubernetes
+#        run: kubectl -n ${{ vars.K8S_NAMESPACE }} apply -f kubernetes.yml
+#
+#      - name: restart Pod in case if not pulling latest image
+#        run: kubectl rollout restart deploy ${{ vars.APP_NAME }} -n ${{ vars.K8S_NAMESPACE }}
