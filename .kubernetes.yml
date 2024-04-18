@@ -24,6 +24,9 @@ spec:
       containers:
         - name: $app_name
           image: $IMAGE
+          env:
+            - name: WEBHOOK_URL
+              value: $WEBHOOK_URL
           ports:
             - containerPort: $PORT
 ---

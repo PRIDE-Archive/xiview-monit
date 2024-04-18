@@ -57,6 +57,7 @@ jobs:
       app_name: ${{ vars.APP_NAME }}
       K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
       IMAGE: ghcr.io/${{ vars.MONIT_GITHUB_REPOSITORY }}:latest
+      WEBHOOK_URL: ${{ vars.WEBHOOK_URL }}
 
     steps:
       - name: Checkout repository
@@ -90,9 +91,9 @@ jobs:
 
       - name: Print kubernetes.yml
         run: cat kubernetes.yml
-#
-#      - name: Deploy to Kubernetes
-#        run: kubectl -n ${{ vars.K8S_NAMESPACE }} apply -f kubernetes.yml
-#
-#      - name: restart Pod in case if not pulling latest image
-#        run: kubectl rollout restart deploy ${{ vars.APP_NAME }} -n ${{ vars.K8S_NAMESPACE }}
+
+      - name: Deploy to Kubernetes
+        run: kubectl -n ${{ vars.K8S_NAMESPACE }} apply -f kubernetes.yml
+
+      - name: restart Pod in case if not pulling latest image
+        run: kubectl rollout restart deploy ${{ vars.APP_NAME }} -n ${{ vars.K8S_NAMESPACE }}
