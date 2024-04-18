@@ -10,6 +10,7 @@ RUN apk add ruby ruby-json
 RUN mkdir -p monit/scripts
 COPY scripts/* /monit/scripts/
 RUN chmod +x /monit/scripts/*.sh
+RUN chmod +x /monit/scripts/*.rb
 RUN chmod 700 /monit/scripts/run.sh
 RUN chmod 700 /monit/scripts/monitrc-*
 ENTRYPOINT /monit/scripts/run.sh
